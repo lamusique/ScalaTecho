@@ -4,6 +4,7 @@ import net.fortuna.ical4j.data.CalendarBuilder
 import net.fortuna.ical4j.model.{Property, Component}
 
 import com.github.nscala_time.time.Imports._
+import org.joda.time.PeriodType
 import org.joda.time.format.{ISODateTimeFormat, DateTimeFormatter}
 
 /**
@@ -11,8 +12,8 @@ import org.joda.time.format.{ISODateTimeFormat, DateTimeFormatter}
  */
 class ICal4JTest extends org.specs2.mutable.Specification {
 
-  //private val UTC_PATTERN: String = "yyyyMMdd'T'HHmmss'Z'"
-  private val UTC_PATTERN: String = "yyyyMMdd'T'HHmmssZ"
+  private val UTC_FORMAT = DateTimeFormat.forPattern("yyyyMMdd'T'HHmmssZ")
+  private val TIME_FORMAT = DateTimeFormat.forPattern("HH:mm")
 
   "this is my specification" >> {
     "where example 1 must be true" >> {
@@ -24,36 +25,22 @@ class ICal4JTest extends org.specs2.mutable.Specification {
       import scala.collection.JavaConverters._
 
       val components = calendar.getComponents.iterator.asInstanceOf[java.util.Iterator[Component]].asScala.toIndexedSeq
-      components map (component => {
-        println("component.getName=" + component.getName)
-        component.getProperty("DTSTART").getValue
-        component.getProperty("DTEND").getValue
-
-//        val properties = component.getProperties.iterator.asInstanceOf[java.util.Iterator[Property]].asScala.toIndexedSeq
-//        properties map (property => {
-//          println("property=" + property.getName + property.getValue)
-//        })
-
-
+      val lines = components map (component => {
+        val summary = component.getProperty("SUMMARY").getValue
+        val start = DateTime.parse(component.getProperty("DTSTART").getValue, UTC_FORMAT)
+        val end = DateTime.parse(component.getProperty("DTEND").getValue, UTC_FORMAT)
+        val period = new Period(start, end, PeriodType.dayTime())
+        val hours = period.getHours + period.getMinutes.toDouble / 60
+        (start.toString(TIME_FORMAT), end.toString(TIME_FORMAT), hours, summary)
       })
 
-      val date = DateTime.parse("20100603T120000Z", DateTimeFormat.forPattern(UTC_PATTERN))
+      lines foreach println
+
+      val date = DateTime.parse("20100603T120000Z", UTC_FORMAT)
       println(date)
       println(date.toDate)
-      val dateManually = DateTime.parse("20100603T120000Z", DateTimeFormat.forPattern(UTC_PATTERN)).withZone(DateTimeZone.UTC)
-      println(dateManually)
-      println(dateManually)
 
-//      val dt = ISODateTimeFormat.dateTime().parseDateTime("20100603T120000Z")
-//      println(dt)
-//      // startDate = "2013-07-12T18:31:01.000Z";
-//      val dtManually = ISODateTimeFormat.dateTime().withZone(DateTimeZone.UTC).parseDateTime("20100603T120000Z");
-//      println(dtManually)
-
-      val df = DateTimeFormat.forPattern(UTC_PATTERN)
-      val offsetDt = df.withOffsetParsed().parseDateTime("20100603T120000Z");
-      println(offsetDt)
-      println(offsetDt.toDate)
+      println(TIME_FORMAT.print(date))
 
       1 must_== 1
     }
