@@ -38,6 +38,7 @@ class ICal4JTest extends org.specs2.mutable.Specification {
       val components = calendar.getComponents.iterator.asInstanceOf[java.util.Iterator[Component]].asScala.toIndexedSeq
       val lines = components map (component => {
         val summary = component.getProperty("SUMMARY").getValue
+        val splitSummary = summary.split(": ")
         val start = DateTime.parse(component.getProperty("DTSTART").getValue, UTC_FORMAT)
         val startTime = start.toString(TIME_FORMAT)
         val end = DateTime.parse(component.getProperty("DTEND").getValue, UTC_FORMAT)
@@ -45,10 +46,10 @@ class ICal4JTest extends org.specs2.mutable.Specification {
         val hours = period.getHours + period.getMinutes.toDouble / 60
         val startPeriod = PERIOD_FORMATTER.parsePeriod(startTime)
         val endPeriod = startPeriod.plus(period).normalizedStandard(PeriodType.time())
-        (start.toString(DATE_FORMAT), startTime, PERIOD_FORMATTER.print(endPeriod), hours, summary)
+        (start.toString(DATE_FORMAT), startTime, PERIOD_FORMATTER.print(endPeriod), hours, splitSummary(0), splitSummary(1))
       })
 
-      val treatedLines = lines.map(line =>{
+      val treatedLines = lines.reverse.map(line =>{
         line.productIterator.toList.mkString("\t")
       })
 
