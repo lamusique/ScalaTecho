@@ -1,2 +1,2 @@
-# iCalScala
-Manupulating iCal with Scala
+# ScalaTecho
+Manupulating iCal and vCard with Scala
