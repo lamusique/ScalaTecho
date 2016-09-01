@@ -4,7 +4,7 @@ import com.github.nscala_time.time.Imports._
 import net.fortuna.ical4j.data.CalendarBuilder
 import net.fortuna.ical4j.model.Component
 import net.fortuna.ical4j.util.CompatibilityHints
-import org.joda.time.PeriodType
+import org.joda.time.{DateTime, LocalDate, PeriodType}
 import org.joda.time.format.PeriodFormatterBuilder
 
 /**
@@ -75,17 +75,18 @@ class ICal4JTimesheetTest extends org.specs2.mutable.Specification {
         val startPeriod = PERIOD_FORMATTER.parsePeriod(startTime)
         val endPeriod = startPeriod.plus(period).normalizedStandard(PeriodType.time())
 
-        (start.toString(DATE_FORMAT), startTime, PERIOD_FORMATTER.print(endPeriod), breakTime, hours, splitSummary(0), splitSummary(1))
+        new WorkingTimeEvent(splitSummary(0), component, EventType.BILLABLE, start.toLocalDate, start, end, splitSummary(1))
+        //(start.toString(DATE_FORMAT), startTime, PERIOD_FORMATTER.print(endPeriod), breakTime, hours, splitSummary(0), splitSummary(1), component)
       })
 
       val treatedLines = lines.reverse.map(line =>{
-        line.productIterator.toList.mkString("\t")
+        line.value.productIterator.toList.mkString("\t")
       })
 
       treatedLines foreach println
 
 
-      //lines.groupBy()
+      //lines.groupBy(_.)
 
 
 
