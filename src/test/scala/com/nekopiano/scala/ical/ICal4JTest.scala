@@ -1,7 +1,7 @@
 package com.nekopiano.scala.ical
 
-import net.fortuna.ical4j.data.{CalendarBuilder, CalendarParserFactory, UnfoldingReader}
-import net.fortuna.ical4j.model.{Component, Property, PropertyFactoryRegistry}
+import net.fortuna.ical4j.data.CalendarBuilder
+import net.fortuna.ical4j.model.Component
 import com.github.nscala_time.time.Imports._
 import net.fortuna.ical4j.util.CompatibilityHints
 import org.joda.time.PeriodType
@@ -31,44 +31,51 @@ class ICal4JTest extends org.specs2.mutable.Specification {
 
       val source = scala.io.Source.fromURL(getClass().getResource("/timesheet.ics"), "UTF-8")
 
-//      CompatibilityHints.setHintEnabled(CompatibilityHints.KEY_RELAXED_UNFOLDING, true)
-//
-//      val reader = new UnfoldingReader(source.bufferedReader, 3000)
-//      val calendar = new CalendarBuilder().build(reader)
-
       CompatibilityHints.setHintEnabled(CompatibilityHints.KEY_RELAXED_PARSING, true)
-
-      val parser = CalendarParserFactory.getInstance().createParser()
-
-//      val propertyFactoryRegistry = new PropertyFactoryRegistry()
-//      propertyFactoryRegistry.register(Acknowledged.PROPERTY_NAME)
-
-//      propertyFactoryRegistry.register(WrTimezone.PROPERTY_NAME, WrTimezone.FACTORY);
-//      propertyFactoryRegistry.register(WrCalName.PROPERTY_NAME, WrCalName.FACTORY);
-//
-//      ParameterFactoryRegistry parameterFactoryRegistry = new ParameterFactoryRegistry();
-//
-//      TimeZoneRegistry tzRegistry = TimeZoneRegistryFactory.getInstance().createRegistry();
-//
-//      builder = new CalendarBuilder(parser, propertyFactoryRegistry, parameterFactoryRegistry, tzRegistry);
-
       val builder = new CalendarBuilder
       val calendar = builder.build(source.bufferedReader)
 
       import scala.collection.JavaConverters._
 
       val components = calendar.getComponents.iterator.asInstanceOf[java.util.Iterator[Component]].asScala.toIndexedSeq
-      val lines = components map (component => {
+      val events = components.map(component => {
+        val summary = component.getProperty("SUMMARY").getValue
+        val eventType = summary match {
+          case summary:String if {
+            val splitSummary = summary.split(": ")
+            splitSummary.size > 1} => EventType.BILLABLE
+          case _ => EventType.MISC
+        }
+        new Event(component, eventType)
+      })
+
+      val billableEvents = events.filter(_.eventType == EventType.BILLABLE)
+
+      val lines = billableEvents map (event => {
+        val component = event.component
         val summary = component.getProperty("SUMMARY").getValue
         val splitSummary = summary.split(": ")
         val start = DateTime.parse(component.getProperty("DTSTART").getValue, UTC_FORMAT)
         val startTime = start.toString(TIME_FORMAT)
         val end = DateTime.parse(component.getProperty("DTEND").getValue, UTC_FORMAT)
+
+        // Find a lunchtime
+        val today = start.withMinuteOfHour(0).withSecondOfMinute(0).withMillisOfSecond(0)
+        val lunchtime = new Interval(today.withHourOfDay(12), today.withHourOfDay(13))
+
+        val interval = new Interval(start, end)
+        val breakTime = interval.overlap(lunchtime) match {
+          case null => 0.0
+          case _ => 1.0
+        }
+
+        // endTime could be over 24:00, e.g. 32:00
         val period = new Period(start, end, PeriodType.dayTime())
         val hours = period.getHours + period.getMinutes.toDouble / 60
         val startPeriod = PERIOD_FORMATTER.parsePeriod(startTime)
         val endPeriod = startPeriod.plus(period).normalizedStandard(PeriodType.time())
-        (start.toString(DATE_FORMAT), startTime, PERIOD_FORMATTER.print(endPeriod), hours, splitSummary(0), splitSummary(1))
+
+        (start.toString(DATE_FORMAT), startTime, PERIOD_FORMATTER.print(endPeriod), breakTime, hours, splitSummary(0), splitSummary(1))
       })
 
       val treatedLines = lines.reverse.map(line =>{
