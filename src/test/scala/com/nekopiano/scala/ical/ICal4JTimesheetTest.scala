@@ -7,6 +7,8 @@ import net.fortuna.ical4j.util.CompatibilityHints
 import org.joda.time.{DateTime, LocalDate, PeriodType}
 import org.joda.time.format.PeriodFormatterBuilder
 
+import scala.collection.immutable.IndexedSeq
+
 /**
  * Created at 1/Sep/16.
  */
@@ -122,16 +124,41 @@ class ICal4JTimesheetTest extends org.specs2.mutable.Specification {
       println("=" * 64)
 
       val mergedByDate = linesGroupedByDate.map(group => {
-        val hours = group._2.map(_.hours).sum
-        val breakTime = group._2.map(_.breakTime()).sum
-        val concatenatedDescription = group._2.map(line => {
+        val events: IndexedSeq[WorkingTimeEvent] = group._2
+        val workingHours = events.map(_.workingHours()).sum
+        val breakTime = events.map(_.breakTime()).sum
+        val concatenatedDescription = events.map(line => {
           line.client + ": " + line.description
         }).mkString("; ")
-       (group._2.head.date, group._2.head.startTime(), group._2.last.endPeriod(), breakTime, hours, concatenatedDescription)
-      })
-      //println(mergedByDate)
 
-      mergedByDate.map(_.productIterator.toList.mkString("\t")) foreach println
+        val workingHoursByClient = events.groupBy(_.client).map(group=>{
+          (group._1, group._2.map(_.workingHours()).sum)
+        })
+
+       (events.head.date, events.head.startTime(), events.last.endPeriod(), breakTime, workingHours, concatenatedDescription, workingHoursByClient)
+      })
+
+
+      val clients = mergedByDate.flatMap(oneDay => oneDay._7.keySet).distinct.toSeq.sorted
+
+      val hoursByClient = mergedByDate.map(oneDay => {
+        val client2hours = oneDay._7
+        val hoursByClient = clients.map(client => {
+          client2hours.getOrElse(client, 0.0)
+        })
+        (oneDay, hoursByClient)
+      })
+
+      val fixedHeader = Seq("date", "start", "end", "break time", "working hours", "description")
+      val header = fixedHeader ++ clients
+      println(header.mkString("\t"))
+
+      val stringLines = hoursByClient.map(oneDay => {
+        val normalColumns = oneDay._1.productIterator.toSeq.dropRight(1)
+        val hoursByClients = oneDay._2
+        (normalColumns ++ hoursByClients) mkString("\t")
+      })
+      stringLines foreach println
 
       1 must_== 1
     }

@@ -55,10 +55,14 @@ class WorkingTimeEvent(val client:String, component:Component, eventType:EventTy
     hours
   }
 
+  def workingHours() = {
+    hours() - breakTime()
+  }
+
   private def period() = new Period(start, end, PeriodType.dayTime())
 
 
-  def value() = (start.toString(DATE_FORMAT), startTime, endPeriod(), breakTime, hours, client, description)
+  def value() = (start.toString(DATE_FORMAT), startTime, endPeriod(), breakTime, workingHours(), client, description)
 
 
 }
