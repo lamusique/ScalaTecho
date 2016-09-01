@@ -1,14 +1,14 @@
 package com.nekopiano.scala.ical
 
-import net.fortuna.ical4j.data.CalendarBuilder
-import net.fortuna.ical4j.model.{Property, Component}
-
+import net.fortuna.ical4j.data.{CalendarBuilder, CalendarParserFactory, UnfoldingReader}
+import net.fortuna.ical4j.model.{Component, Property, PropertyFactoryRegistry}
 import com.github.nscala_time.time.Imports._
+import net.fortuna.ical4j.util.CompatibilityHints
 import org.joda.time.PeriodType
 import org.joda.time.format.PeriodFormatterBuilder
 
 /**
- * Created by Neko Piano at 7:21 PM 7/31/15.
+ * Created at 7:21 PM 7/31/15.
  */
 class ICal4JTest extends org.specs2.mutable.Specification {
 
@@ -29,7 +29,29 @@ class ICal4JTest extends org.specs2.mutable.Specification {
   "this is my specification" >> {
     "where example 1 must be true" >> {
 
-      val source = scala.io.Source.fromURL(getClass().getResource("/billable.ics"), "UTF-8")
+      val source = scala.io.Source.fromURL(getClass().getResource("/timesheet.ics"), "UTF-8")
+
+//      CompatibilityHints.setHintEnabled(CompatibilityHints.KEY_RELAXED_UNFOLDING, true)
+//
+//      val reader = new UnfoldingReader(source.bufferedReader, 3000)
+//      val calendar = new CalendarBuilder().build(reader)
+
+      CompatibilityHints.setHintEnabled(CompatibilityHints.KEY_RELAXED_PARSING, true)
+
+      val parser = CalendarParserFactory.getInstance().createParser()
+
+//      val propertyFactoryRegistry = new PropertyFactoryRegistry()
+//      propertyFactoryRegistry.register(Acknowledged.PROPERTY_NAME)
+
+//      propertyFactoryRegistry.register(WrTimezone.PROPERTY_NAME, WrTimezone.FACTORY);
+//      propertyFactoryRegistry.register(WrCalName.PROPERTY_NAME, WrCalName.FACTORY);
+//
+//      ParameterFactoryRegistry parameterFactoryRegistry = new ParameterFactoryRegistry();
+//
+//      TimeZoneRegistry tzRegistry = TimeZoneRegistryFactory.getInstance().createRegistry();
+//
+//      builder = new CalendarBuilder(parser, propertyFactoryRegistry, parameterFactoryRegistry, tzRegistry);
+
       val builder = new CalendarBuilder
       val calendar = builder.build(source.bufferedReader)
 
