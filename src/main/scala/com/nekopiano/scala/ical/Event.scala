@@ -10,7 +10,7 @@ import org.joda.time.{DateTime, LocalDate, Period, PeriodType}
   */
 class Event(val component:Component, val eventType:EventType) {}
 
-class WorkingTimeEvent(val client:String, component:Component, eventType:EventType, date:LocalDate, start:DateTime, end:DateTime, description:String) extends Event(component, eventType) {
+class WorkingTimeEvent(val client:String, component:Component, eventType:EventType, val date:LocalDate, val start:DateTime, val end:DateTime, val description:String) extends Event(component, eventType) {
 
   private val DATE_FORMAT = DateTimeFormat.forPattern("yyyy/MM/dd")
   private val TIME_FORMAT = DateTimeFormat.forPattern("HH:mm")
@@ -32,7 +32,8 @@ class WorkingTimeEvent(val client:String, component:Component, eventType:EventTy
     val period = this.period()
     val hours = period.getHours + period.getMinutes.toDouble / 60
     val startPeriod = PERIOD_FORMATTER.parsePeriod(startTime())
-    startPeriod.plus(period).normalizedStandard(PeriodType.time())
+    val endPeriod = startPeriod.plus(period).normalizedStandard(PeriodType.time())
+    PERIOD_FORMATTER.print(endPeriod)
   }
 
   def breakTime() = {
@@ -57,7 +58,7 @@ class WorkingTimeEvent(val client:String, component:Component, eventType:EventTy
   private def period() = new Period(start, end, PeriodType.dayTime())
 
 
-  def value() = (start.toString(DATE_FORMAT), startTime, PERIOD_FORMATTER.print(endPeriod), breakTime, hours, client, description)
+  def value() = (start.toString(DATE_FORMAT), startTime, endPeriod(), breakTime, hours, client, description)
 
 
 }

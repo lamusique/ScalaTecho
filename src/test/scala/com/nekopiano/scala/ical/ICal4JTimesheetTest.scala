@@ -51,6 +51,10 @@ class ICal4JTimesheetTest extends org.specs2.mutable.Specification {
 
       val billableEvents = events.filter(_.eventType == EventType.BILLABLE)
 
+      println("=" * 64)
+      println("All work")
+      println("=" * 64)
+
       val lines = billableEvents map (event => {
         val component = event.component
         val summary = component.getProperty("SUMMARY").getValue
@@ -79,17 +83,55 @@ class ICal4JTimesheetTest extends org.specs2.mutable.Specification {
         //(start.toString(DATE_FORMAT), startTime, PERIOD_FORMATTER.print(endPeriod), breakTime, hours, splitSummary(0), splitSummary(1), component)
       })
 
-      val treatedLines = lines.reverse.map(line =>{
+      val treatedLines = lines.sortBy(_.date).map(line =>{
         line.value.productIterator.toList.mkString("\t")
       })
 
       treatedLines foreach println
 
+      println("=" * 64)
+      println("Group by Client")
+      println("=" * 64)
 
-      //lines.groupBy(_.)
+      val linesGroupedByClient = lines.groupBy(_.client).map(group => {
+        val lines = group._2.map(_.value.productIterator.toList.mkString("\t"))
+        (group._1, lines)
+      })
+      linesGroupedByClient.foreach(group=>{
+        println("=" * 32)
+        println(group._1)
+        println("=" * 32)
+        println(group._2.mkString("\n"))
+      })
 
+      val linesGroupedByDate = lines.groupBy(_.date).toSeq.sortBy(_._1)
 
+      val stringLinesGroupedByDate = lines.groupBy(_.date).map(group => {
+        val lines = group._2.map(_.value.productIterator.toList.mkString("\t"))
+        (group._1, lines)
+      }).toSeq.sortBy(_._1)
+      stringLinesGroupedByDate.foreach(group=>{
+        println("=" * 32)
+        println(group._1)
+        println("=" * 32)
+        println(group._2.mkString("\n"))
+      })
 
+      println("=" * 64)
+      println("Merged Dates")
+      println("=" * 64)
+
+      val mergedByDate = linesGroupedByDate.map(group => {
+        val hours = group._2.map(_.hours).sum
+        val breakTime = group._2.map(_.breakTime()).sum
+        val concatenatedDescription = group._2.map(line => {
+          line.client + ": " + line.description
+        }).mkString("; ")
+       (group._2.head.date, group._2.head.startTime(), group._2.last.endPeriod(), breakTime, hours, concatenatedDescription)
+      })
+      //println(mergedByDate)
+
+      mergedByDate.map(_.productIterator.toList.mkString("\t")) foreach println
 
       1 must_== 1
     }
