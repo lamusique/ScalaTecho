@@ -4,7 +4,7 @@ import com.github.nscala_time.time.Imports._
 import net.fortuna.ical4j.data.CalendarBuilder
 import net.fortuna.ical4j.model.Component
 import net.fortuna.ical4j.util.CompatibilityHints
-import org.joda.time.{DateTime, LocalDate, PeriodType}
+import org.joda.time.{DateTime, DurationFieldType, LocalDate, PeriodType}
 import org.joda.time.format.PeriodFormatterBuilder
 
 import scala.collection.immutable.IndexedSeq
@@ -17,6 +17,8 @@ class ICal4JTimesheetTest extends org.specs2.mutable.Specification {
   private val UTC_FORMAT = DateTimeFormat.forPattern("yyyyMMdd'T'HHmmssZ")
   private val TIME_FORMAT = DateTimeFormat.forPattern("HH:mm")
   private val DATE_FORMAT = DateTimeFormat.forPattern("yyyy/MM/dd")
+  private val DAY_FORMAT = DateTimeFormat.forPattern("yyyy/MM/dd E")
+
 
   private val PERIOD_FORMATTER = {
     val builder = new PeriodFormatterBuilder()
@@ -51,7 +53,10 @@ class ICal4JTimesheetTest extends org.specs2.mutable.Specification {
         new Event(component, eventType)
       })
 
-      val billableEvents = events.filter(_.eventType == EventType.BILLABLE)
+      val billableEvents = events
+        .filter(_.eventType == EventType.BILLABLE)
+        // YYYYMMDD is for an all day event.
+        .filter(_.component.getProperty("DTSTART").getValue.size > 8)
 
       println("=" * 64)
       println("All work")
@@ -85,17 +90,44 @@ class ICal4JTimesheetTest extends org.specs2.mutable.Specification {
         //(start.toString(DATE_FORMAT), startTime, PERIOD_FORMATTER.print(endPeriod), breakTime, hours, splitSummary(0), splitSummary(1), component)
       })
 
-      val treatedLines = lines.sortBy(_.date).map(line =>{
+      val linesSortedByDateTime = lines.sortBy(_.start)
+      val treatedLines = linesSortedByDateTime.map(line =>{
         line.value.productIterator.toList.mkString("\t")
       })
 
       treatedLines foreach println
 
+
+      println("=" * 64)
+      println("all dates aligned")
+      println("=" * 64)
+
+      val startDate = linesSortedByDateTime.head.start
+      val endDate = linesSortedByDateTime.last.start
+      val duration = new Duration(startDate, endDate).getStandardDays.toInt
+      val days = (0 to duration).map(day => startDate.plusDays(day.toInt).toLocalDate)
+
+      val dateMapping = linesSortedByDateTime.map(line => line.date -> line) toMap
+
+      val allDays = days.map(day => {
+        day -> dateMapping.get(day)
+      })
+      allDays.foreach(day => {
+        val line = day._2 match {
+          case Some(line) => line.productIterator.toList.mkString("\t")
+          case None => ""
+        }
+        val dayString = DAY_FORMAT.print(day._1)
+
+        //println()
+      })
+
+
       println("=" * 64)
       println("Group by Client")
       println("=" * 64)
 
-      val linesGroupedByClient = lines.groupBy(_.client).map(group => {
+      val linesGroupedByClient = linesSortedByDateTime.groupBy(_.client).map(group => {
         val lines = group._2.map(_.value.productIterator.toList.mkString("\t"))
         (group._1, lines)
       })
@@ -106,9 +138,9 @@ class ICal4JTimesheetTest extends org.specs2.mutable.Specification {
         println(group._2.mkString("\n"))
       })
 
-      val linesGroupedByDate = lines.groupBy(_.date).toSeq.sortBy(_._1)
+      val linesGroupedByDate = linesSortedByDateTime.groupBy(_.date).toSeq.sortBy(_._1)
 
-      val stringLinesGroupedByDate = lines.groupBy(_.date).map(group => {
+      val stringLinesGroupedByDate = linesGroupedByDate.map(group => {
         val lines = group._2.map(_.value.productIterator.toList.mkString("\t"))
         (group._1, lines)
       }).toSeq.sortBy(_._1)
@@ -155,10 +187,27 @@ class ICal4JTimesheetTest extends org.specs2.mutable.Specification {
 
       val stringLines = hoursByClient.map(oneDay => {
         val normalColumns = oneDay._1.productIterator.toSeq.dropRight(1)
+        //val normalColumns = oneDay._1.productIterator.toSeq.dropRight(1).asInstanceOf[(LocalDate, String, String, Double, Double, String)]
         val hoursByClients = oneDay._2
         (normalColumns ++ hoursByClients) mkString("\t")
       })
       stringLines foreach println
+
+
+      println("=" * 64)
+      println("taget month time sheet")
+      println("=" * 64)
+
+      val hoursByClientInTargetMonth = hoursByClient.filter(_._1._1.isAfter(LocalDate.parse("2016-09-01").minusDays(1)))
+
+      val targetMonthLines = hoursByClientInTargetMonth.map(oneDay => {
+        val normalColumns = oneDay._1.productIterator.toSeq.dropRight(1)
+        //val normalColumns = oneDay._1.productIterator.toSeq.dropRight(1).asInstanceOf[(LocalDate, String, String, Double, Double, String)]
+        val hoursByClients = oneDay._2
+        (normalColumns ++ hoursByClients) mkString("\t")
+      })
+      targetMonthLines foreach println
+
 
       1 must_== 1
     }
