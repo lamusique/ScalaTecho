@@ -6,7 +6,7 @@ import org.joda.time.format.PeriodFormatterBuilder
 import org.joda.time.{DateTime, LocalDate, Period, PeriodType}
 
 /**
-  * Created on 01/09/2016.
+  * Created on 09/Jan/2016.
   */
 class Event(val component:Component, val eventType:EventType) {}
 
@@ -77,6 +77,5 @@ object EventType {
   case object MISC extends EventType(5)
 }
 sealed abstract class EventType(val code:Int) {
-  // A, C, G, T, Nをcase objectとすると、クラス名を表示するtoStringが実装される
   val name = toString
 }
