@@ -1,4 +1,5 @@
-name := "iCalScala"
+name := "scala-techo"
+// Previously iCalScala
 
 version := "1.0"
 
