@@ -114,7 +114,7 @@ class ICal4JTimesheetTest extends org.specs2.mutable.Specification {
       })
       allDays.foreach(day => {
         val line = day._2 match {
-          case Some(line) => line.productIterator.toList.mkString("\t")
+          case Some(someLine) => someLine.productIterator.toList.mkString("\t")
           case None => ""
         }
         val dayString = DAY_FORMAT.print(day._1)
