@@ -8,7 +8,7 @@ import org.joda.time.{DateTime, LocalDate, Period, PeriodType}
 /**
   * Created on 09/Jan/2016.
   */
-class Event(val component:Component, val eventType:EventType) {}
+case class Event(val component:Component, val eventType:EventType) {}
 
 class WorkingTimeEvent(val client:String, component:Component, eventType:EventType, val date:LocalDate, val start:DateTime, val end:DateTime, val description:String) extends Event(component, eventType) {
 
@@ -35,6 +35,7 @@ class WorkingTimeEvent(val client:String, component:Component, eventType:EventTy
     val endPeriod = startPeriod.plus(period).normalizedStandard(PeriodType.time())
     PERIOD_FORMATTER.print(endPeriod)
   }
+
 
   def breakTime() = {
     // Find a lunchtime
